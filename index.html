@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gallery</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; min-height: 100vh; }
+
+        nav {
+            background: #2a2a2a;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+        }
+        nav h1 { font-size: 1.5rem; }
+        nav button {
+            background: #4a4a4a;
+            color: #fff;
+            border: none;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        nav button:hover { background: #5a5a5a; }
+
+        .views { display: none; padding: 2rem; }
+        .views.active { display: block; }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+            padding: 1rem;
+        }
+        .gallery-item {
+            background: #2a2a2a;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .gallery-item:hover { transform: scale(1.03); }
+        .gallery-item img { width: 100%; aspect-ratio: 1; object-fit: cover; }
+        .gallery-item .name { padding: 0.5rem; font-size: 0.9rem; }
+
+        .lightbox {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.95);
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 100;
+        }
+        .lightbox.active { display: flex; }
+        .lightbox img { max-width: 90%; max-height: 80vh; object-fit: contain; }
+        .lightbox .description { margin-top: 1rem; color: #aaa; text-align: center; max-width: 600px; }
+        .lightbox .close {
+            position: absolute;
+            top: 20px; right: 20px;
+            font-size: 2rem;
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: #fff;
+        }
+
+        .admin-panel { max-width: 800px; margin: 0 auto; }
+        .admin-login { max-width: 400px; margin: 4rem auto; text-align: center; }
+        .admin-login input {
+            width: 100%; padding: 0.75rem; margin-bottom: 1rem;
+            background: #2a2a2a; border: 1px solid #444; color: #fff;
+            border-radius: 4px;
+        }
+        .admin-login button {
+            width: 100%; padding: 0.75rem;
+            background: #4a9; color: #fff;
+            border: none; cursor: pointer; border-radius: 4px;
+        }
+        .image-list { display: flex; flex-direction: column; gap: 0.5rem; }
+        .image-item {
+            display: flex; align-items: center; gap: 1rem;
+            background: #2a2a2a; padding: 0.75rem; border-radius: 4px;
+        }
+        .image-item img { width: 60px; height: 60px; object-fit: cover; border-radius: 4px; }
+        .image-item .info { flex: 1; }
+        .image-item input[type="number"] {
+            width: 60px; padding: 0.25rem;
+            background: #3a3a3a; border: 1px solid #555; color: #fff;
+            border-radius: 4px; text-align: center;
+        }
+        .image-item button {
+            padding: 0.4rem 0.8rem;
+            border: none; border-radius: 4px; cursor: pointer;
+        }
+        .btn-edit { background: #4a9; color: #fff; }
+        .btn-delete { background: #a44; color: #fff; }
+        .add-image-form {
+            background: #2a2a2a; padding: 1rem; border-radius: 4px; margin-bottom: 1rem;
+        }
+        .add-image-form input {
+            padding: 0.5rem; margin-right: 0.5rem;
+            background: #3a3a3a; border: 1px solid #555; color: #fff; border-radius: 4px;
+        }
+        .add-image-form button {
+            padding: 0.5rem 1rem;
+            background: #4a9; color: #fff; border: none; border-radius: 4px; cursor: pointer;
+        }
+        .logout-btn { background: #a44 !important; }
+    </style>
+</head>
+<body>
+    <nav>
+        <h1>📷 Gallery</h1>
+        <div>
+            <button onclick="showView('gallery')">Gallery</button>
+            <button onclick="showView('admin')">Admin</button>
+        </div>
+    </nav>
+
+    <div id="gallery-view" class="views active">
+        <div class="gallery-grid" id="gallery-grid"></div>
+    </div>
+
+    <div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
+        <button class="close" onclick="closeLightbox()">&times;</button>
+        <img id="lightbox-img" src="" alt="">
+        <p class="description" id="lightbox-desc"></p>
+    </div>
+
+    <div id="admin-view" class="views">
+        <div class="admin-panel">
+            <div id="admin-login-form" class="admin-login">
+                <h2>Admin Login</h2>
+                <input type="email" id="login-email" placeholder="Email">
+                <input type="password" id="login-password" placeholder="Password">
+                <button onclick="adminLogin()">Login</button>
+            </div>
+            <div id="admin-content" style="display:none;">
+                <h2>Image Management</h2>
+                <button class="logout-btn" onclick="adminLogout()" style="margin-bottom:1rem;">Logout</button>
+
+                <div class="add-image-form">
+                    <h3>Add New Image</h3>
+                    <input type="text" id="new-image-name" placeholder="Image Name">
+                    <input type="text" id="new-image-url" placeholder="Image URL">
+                    <input type="text" id="new-thumb-url" placeholder="Thumbnail URL">
+                    <input type="text" id="new-image-desc" placeholder="Description (optional)">
+                    <input type="number" id="new-image-order" placeholder="Order" value="0">
+                    <button onclick="createImage()">Add Image</button>
+                </div>
+
+                <div class="image-list" id="image-list"></div>
+                <button onclick="saveOrder()" style="margin-top:1rem;padding:0.75rem 1.5rem;background:#4a9;color:#fff;border:none;border-radius:4px;cursor:pointer;">Save Order</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = '/api';
+
+        function showView(view) {
+            document.querySelectorAll('.views').forEach(v => v.classList.remove('active'));
+            document.getElementById(view + '-view').classList.add('active');
+        }
+
+        async function loadGallery() {
+            const res = await fetch(`${API}/images`);
+            const images = await res.json();
+            const grid = document.getElementById('gallery-grid');
+            grid.innerHTML = images.map(img => `
+                <div class="gallery-item" onclick="openLightbox('${img.image_url}', '${img.image_description || ''}')">
+                    <img src="${img.thumbnail_url}" alt="${img.image_name}">
+                    <div class="name">${img.image_name}</div>
+                </div>
+            `).join('');
+        }
+
+        function openLightbox(url, desc) {
+            document.getElementById('lightbox-img').src = url;
+            document.getElementById('lightbox-desc').textContent = desc;
+            document.getElementById('lightbox').classList.add('active');
+        }
+
+        function closeLightbox(e) {
+            if (!e || e.target === document.getElementById('lightbox') || e.target.classList.contains('close')) {
+                document.getElementById('lightbox').classList.remove('active');
+            }
+        }
+
+        let adminToken = localStorage.getItem('gallery_token');
+
+        async function adminLogin() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const res = await fetch(`${API}/admin/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                adminToken = data.access_token;
+                localStorage.setItem('gallery_token', adminToken);
+                localStorage.setItem('gallery_user_id', data.user_id);
+                showAdminContent();
+            } else {
+                alert('Login failed');
+            }
+        }
+
+        function adminLogout() {
+            adminToken = null;
+            localStorage.removeItem('gallery_token');
+            localStorage.removeItem('gallery_user_id');
+            document.getElementById('admin-login-form').style.display = 'block';
+            document.getElementById('admin-content').style.display = 'none';
+        }
+
+        function showAdminContent() {
+            if (adminToken) {
+                document.getElementById('admin-login-form').style.display = 'none';
+                document.getElementById('admin-content').style.display = 'block';
+                loadAdminImages();
+            }
+        }
+
+        async function loadAdminImages() {
+            const res = await fetch(`${API}/admin/images`, {
+                headers: { 'Authorization': `Bearer ${adminToken}` }
+            });
+            const images = await res.json();
+            const list = document.getElementById('image-list');
+            list.innerHTML = images.map(img => `
+                <div class="image-item">
+                    <img src="${img.thumbnail_url}" alt="${img.image_name}">
+                    <div class="info">
+                        <strong>${img.image_name}</strong>
+                        <div style="font-size:0.8rem;color:#888;">${img.image_url}</div>
+                    </div>
+                    <input type="number" value="${img.display_order}" data-id="${img.id}" class="order-input">
+                    <button class="btn-edit" onclick="editImage('${img.id}')">Edit</button>
+                    <button class="btn-delete" onclick="deleteImage('${img.id}')">Delete</button>
+                </div>
+            `).join('');
+        }
+
+        async function createImage() {
+            const name = document.getElementById('new-image-name').value;
+            const image_url = document.getElementById('new-image-url').value;
+            const thumbnail_url = document.getElementById('new-thumb-url').value;
+            const image_description = document.getElementById('new-image-desc').value || null;
+            const display_order = parseInt(document.getElementById('new-image-order').value) || 0;
+            const user_id = localStorage.getItem('gallery_user_id');
+
+            const res = await fetch(`${API}/admin/images`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${adminToken}`
+                },
+                body: JSON.stringify({ image_name: name, image_url, thumbnail_url, image_description, display_order, user_id })
+            });
+            if (res.ok) {
+                ['new-image-name','new-image-url','new-thumb-url','new-image-desc','new-image-order'].forEach(id => document.getElementById(id).value = '');
+                loadAdminImages();
+            } else {
+                alert('Failed to create image');
+            }
+        }
+
+        async function editImage(id) {
+            const order = document.querySelector(`input[data-id="${id}"]`).value;
+            const res = await fetch(`${API}/admin/images`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${adminToken}`
+                },
+                body: JSON.stringify({ id, display_order: parseInt(order) })
+            });
+            if (!res.ok) alert('Failed to update');
+        }
+
+        async function deleteImage(id) {
+            if (!confirm('Delete this image?')) return;
+            await fetch(`${API}/admin/images?id=${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${adminToken}` }
+            });
+            loadAdminImages();
+        }
+
+        async function saveOrder() {
+            const orders = Array.from(document.querySelectorAll('.order-input')).map(input => ({
+                id: input.dataset.id,
+                display_order: parseInt(input.value)
+            }));
+            await fetch(`${API}/admin/images/reorder`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${adminToken}`
+                },
+                body: JSON.stringify({ images: orders })
+            });
+            alert('Order saved!');
+        }
+
+        loadGallery();
+        showAdminContent();
+    </script>
+</body>
+</html>
