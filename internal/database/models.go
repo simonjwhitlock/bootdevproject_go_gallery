@@ -20,10 +20,11 @@ type Image struct {
 }
 
 type User struct {
-	ID        uuid.UUID `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	Email     string    `json:"email"`
+	ID           uuid.UUID `json:"id"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+	Email        string    `json:"email"`
+	PasswordHash string    `json:"-"`
 }
 
 type Querier interface {
@@ -136,8 +137,8 @@ func (q *Queries) ReorderImages(id uuid.UUID, displayOrder int, updatedAt time.T
 func (q *Queries) GetUserByEmail(email string) (*User, error) {
 	var user User
 	err := q.db.QueryRow(`
-		SELECT id, created_at, updated_at, email FROM users WHERE email = $1
-	`, email).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt, &user.Email)
+		SELECT id, created_at, updated_at, email, password_hash FROM users WHERE email = $1
+	`, email).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt, &user.Email, &user.PasswordHash)
 	if err != nil {
 		return nil, err
 	}
@@ -146,11 +147,11 @@ func (q *Queries) GetUserByEmail(email string) (*User, error) {
 
 func (q *Queries) CreateUser(user *User) (*User, error) {
 	err := q.db.QueryRow(`
-		INSERT INTO users (id, created_at, updated_at, email)
-		VALUES ($1, $2, $3, $4)
-		RETURNING id, created_at, updated_at, email
-	`, user.ID, user.CreatedAt, user.UpdatedAt, user.Email).
-		Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt, &user.Email)
+		INSERT INTO users (id, created_at, updated_at, email, password_hash)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id, created_at, updated_at, email, password_hash
+	`, user.ID, user.CreatedAt, user.UpdatedAt, user.Email, user.PasswordHash).
+		Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt, &user.Email, &user.PasswordHash)
 	if err != nil {
 		return nil, err
 	}

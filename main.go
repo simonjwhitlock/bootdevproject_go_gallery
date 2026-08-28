@@ -8,9 +8,12 @@ import (
 	"os"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 	"github.com/simonjwhitlock/bootdevproject_go_gallery/internal/database"
 	"github.com/simonjwhitlock/bootdevproject_go_gallery/internal/httpapi"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type apiConfig struct {
@@ -52,6 +55,28 @@ func main() {
 		tokenSecret:         os.Getenv("TOKEN_SECRET"),
 		tokenDuration:       parsedTokenDuration,
 		refreshTokenTimeout: parsedRefreshTimeout,
+	}
+
+	// Seed admin user if not exists
+	if adminEmail := os.Getenv("ADMIN_EMAIL"); adminEmail != "" {
+		if _, err := apiCfg.dbQueries.GetUserByEmail(adminEmail); err == sql.ErrNoRows {
+			if adminPassword := os.Getenv("ADMIN_PASSWORD"); adminPassword != "" {
+				hash, _ := bcrypt.GenerateFromPassword([]byte(adminPassword), bcrypt.DefaultCost)
+				now := time.Now()
+				_, err := apiCfg.dbQueries.CreateUser(&database.User{
+					ID:           uuid.New(),
+					CreatedAt:    now,
+					UpdatedAt:    now,
+					Email:        adminEmail,
+					PasswordHash: string(hash),
+				})
+				if err != nil {
+					log.Printf("Warning: failed to create admin user: %v", err)
+				} else {
+					fmt.Println("Admin user created:", adminEmail)
+				}
+			}
+		}
 	}
 
 	// Public handlers

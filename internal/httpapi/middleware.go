@@ -32,17 +32,6 @@ func AuthMiddleware(secret string, next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		// Store user info in context for handlers
-		r = r.WithContext(withUserID(r.Context(), claims.UserID))
 		next(w, r)
 	}
-}
-
-type contextKey string
-
-const userIDKey contextKey = "userID"
-
-func withUserID(ctx interface{}, userID interface{}) interface{} {
-	// Simple approach - we'll enhance this
-	return ctx
 }

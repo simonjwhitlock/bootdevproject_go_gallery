@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/simonjwhitlock/bootdevproject_go_gallery/internal/auth"
 	"github.com/simonjwhitlock/bootdevproject_go_gallery/internal/database"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type AdminHandler struct {
@@ -33,7 +34,6 @@ func (h *AdminHandler) AdminLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Verify password hash - for now just check if user exists
 	user, err := h.DB.GetUserByEmail(req.Email)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -42,6 +42,12 @@ func (h *AdminHandler) AdminLogin(w http.ResponseWriter, r *http.Request) {
 		}
 		log.Printf("Login error: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// Verify password
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
+		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
 
