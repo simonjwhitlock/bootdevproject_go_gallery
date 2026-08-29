@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -13,6 +14,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/simonjwhitlock/bootdevproject_go_gallery/internal/database"
 	"github.com/simonjwhitlock/bootdevproject_go_gallery/internal/httpapi"
+	"github.com/simonjwhitlock/bootdevproject_go_gallery/internal/storage"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -22,6 +24,8 @@ type apiConfig struct {
 	tokenSecret         string
 	tokenDuration       time.Duration
 	refreshTokenTimeout time.Duration
+	r2Client            *storage.R2Client
+	r2PublicURL         string
 }
 
 func main() {
@@ -49,12 +53,33 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Initialize R2 client
+	r2Client, err := storage.NewR2Client(
+		os.Getenv("CF_R2_ACCOUNT_ID"),
+		os.Getenv("CF_R2_ACCESS_KEY_ID"),
+		os.Getenv("CF_R2_SECRET_ACCESS_KEY"),
+		os.Getenv("CF_R2_BUCKET_NAME"),
+		os.Getenv("CF_R2_PUBLIC_URL"),
+	)
+	if err != nil {
+		log.Fatalf("Failed to initialize R2 client: %v", err)
+	}
+
+	// Ensure bucket structure exists
+	if err := r2Client.EnsureBucketStructure(context.Background()); err != nil {
+		log.Printf("Warning: Failed to ensure R2 bucket structure: %v", err)
+	} else {
+		fmt.Println("R2 bucket structure initialized")
+	}
+
 	apiCfg := &apiConfig{
 		fileserverHits:      0,
 		dbQueries:           database.New(db),
 		tokenSecret:         os.Getenv("TOKEN_SECRET"),
 		tokenDuration:       parsedTokenDuration,
 		refreshTokenTimeout: parsedRefreshTimeout,
+		r2Client:            r2Client,
+		r2PublicURL:         os.Getenv("CF_R2_PUBLIC_URL"),
 	}
 
 	// Seed admin user if not exists
@@ -80,13 +105,17 @@ func main() {
 	}
 
 	// Public handlers
-	publicHandler := &httpapi.PublicHandler{DB: apiCfg.dbQueries}
+	publicHandler := &httpapi.PublicHandler{
+		DB:      apiCfg.dbQueries,
+		Storage: apiCfg.r2Client,
+	}
 
 	// Admin handlers
 	adminHandler := &httpapi.AdminHandler{
 		DB:            apiCfg.dbQueries,
 		TokenSecret:   apiCfg.tokenSecret,
 		TokenDuration: apiCfg.tokenDuration,
+		Storage:       apiCfg.r2Client,
 	}
 
 	mux := http.NewServeMux()

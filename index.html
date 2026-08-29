@@ -148,8 +148,7 @@
                 <div class="add-image-form">
                     <h3>Add New Image</h3>
                     <input type="text" id="new-image-name" placeholder="Image Name">
-                    <input type="text" id="new-image-url" placeholder="Image URL">
-                    <input type="text" id="new-thumb-url" placeholder="Thumbnail URL">
+                    <input type="file" id="new-image-file" accept="image/*" style="margin-bottom:0.5rem;">
                     <input type="text" id="new-image-desc" placeholder="Description (optional)">
                     <input type="number" id="new-image-order" placeholder="Order" value="0">
                     <button onclick="createImage()">Add Image</button>
@@ -252,22 +251,35 @@
 
         async function createImage() {
             const name = document.getElementById('new-image-name').value;
-            const image_url = document.getElementById('new-image-url').value;
-            const thumbnail_url = document.getElementById('new-thumb-url').value;
+            const fileInput = document.getElementById('new-image-file');
             const image_description = document.getElementById('new-image-desc').value || null;
             const display_order = parseInt(document.getElementById('new-image-order').value) || 0;
             const user_id = localStorage.getItem('gallery_user_id');
 
+            if (!fileInput.files[0]) {
+                alert('Please select an image file');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('image_name', name);
+            formData.append('image', fileInput.files[0]);
+            formData.append('image_description', image_description);
+            formData.append('display_order', display_order);
+            formData.append('user_id', user_id);
+
             const res = await fetch(`${API}/admin/images`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
                     'Authorization': `Bearer ${adminToken}`
                 },
-                body: JSON.stringify({ image_name: name, image_url, thumbnail_url, image_description, display_order, user_id })
+                body: formData
             });
             if (res.ok) {
-                ['new-image-name','new-image-url','new-thumb-url','new-image-desc','new-image-order'].forEach(id => document.getElementById(id).value = '');
+                ['new-image-name','new-image-file','new-image-desc','new-image-order'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = '';
+                });
                 loadAdminImages();
             } else {
                 alert('Failed to create image');
