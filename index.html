@@ -4,122 +4,473 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gallery</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --bg-tertiary: #e9ecef;
+            --bg-card: #ffffff;
+            --text-primary: #1a1a1a;
+            --text-secondary: #6c757d;
+            --text-muted: #adb5bd;
+            --border-color: #dee2e6;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --danger: #dc2626;
+            --success: #16a34a;
+            --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-hover: 0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05);
+            --radius: 12px;
+            --radius-sm: 8px;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #141414;
+            --bg-tertiary: #1f1f1f;
+            --bg-card: #1a1a1a;
+            --text-primary: #f5f5f5;
+            --text-secondary: #a3a3a3;
+            --text-muted: #737373;
+            --border-color: #2a2a2a;
+            --shadow: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+            --shadow-hover: 0 10px 15px rgba(0,0,0,0.4), 0 4px 6px rgba(0,0,0,0.2);
+        }
+
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; min-height: 100vh; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
 
         nav {
-            background: #2a2a2a;
+            background: var(--bg-card);
             padding: 1rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid #333;
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            backdrop-filter: blur(8px);
+            background: var(--bg-card);
         }
-        nav h1 { font-size: 1.5rem; }
+        nav h1 { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.02em; }
+        nav .nav-right { display: flex; gap: 0.5rem; align-items: center; }
         nav button {
-            background: #4a4a4a;
-            color: #fff;
-            border: none;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
             padding: 0.5rem 1rem;
             cursor: pointer;
-            border-radius: 4px;
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.15s ease;
         }
-        nav button:hover { background: #5a5a5a; }
+        nav button:hover { background: var(--bg-secondary); border-color: var(--text-muted); }
+        nav button.active { background: var(--accent); color: white; border-color: var(--accent); }
 
-        .views { display: none; padding: 2rem; }
+        .theme-toggle {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        .views { display: none; padding: 0; }
         .views.active { display: block; }
 
+        /* Gallery Grid - Pinterest style */
         .gallery-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 1rem;
-            padding: 1rem;
+            columns: 5;
+            column-gap: 16px;
+            padding: 24px;
+            max-width: 1800px;
+            margin: 0 auto;
         }
+
+        @media (max-width: 1400px) { .gallery-grid { columns: 4; } }
+        @media (max-width: 1100px) { .gallery-grid { columns: 3; } }
+        @media (max-width: 768px) { .gallery-grid { columns: 2; } }
+        @media (max-width: 480px) { .gallery-grid { columns: 1; } }
+
         .gallery-item {
-            background: #2a2a2a;
-            border-radius: 8px;
+            break-inside: avoid;
+            margin-bottom: 16px;
+            background: var(--bg-card);
+            border-radius: var(--radius);
             overflow: hidden;
             cursor: pointer;
-            transition: transform 0.2s;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: var(--shadow);
         }
-        .gallery-item:hover { transform: scale(1.03); }
-        .gallery-item img { width: 100%; aspect-ratio: 1; object-fit: cover; }
-        .gallery-item .name { padding: 0.5rem; font-size: 0.9rem; }
+        .gallery-item:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-hover);
+        }
+        .gallery-item img {
+            width: 100%;
+            display: block;
+            object-fit: cover;
+        }
+        .gallery-item .name {
+            padding: 12px 16px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
 
+        /* Lightbox */
         .lightbox {
             display: none;
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.95);
+            background: rgba(0,0,0,0.9);
             justify-content: center;
             align-items: center;
             flex-direction: column;
             z-index: 100;
+            backdrop-filter: blur(4px);
         }
         .lightbox.active { display: flex; }
-        .lightbox img { max-width: 90%; max-height: 80vh; object-fit: contain; }
-        .lightbox .description { margin-top: 1rem; color: #aaa; text-align: center; max-width: 600px; }
+        .lightbox img {
+            max-width: 90%;
+            max-height: 85vh;
+            object-fit: contain;
+            border-radius: var(--radius);
+        }
+        .lightbox .description {
+            margin-top: 1rem;
+            color: rgba(255,255,255,0.8);
+            text-align: center;
+            max-width: 600px;
+            font-size: 0.95rem;
+        }
         .lightbox .close {
             position: absolute;
             top: 20px; right: 20px;
             font-size: 2rem;
             cursor: pointer;
-            background: none;
+            background: rgba(255,255,255,0.1);
             border: none;
             color: #fff;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s ease;
+        }
+        .lightbox .close:hover { background: rgba(255,255,255,0.2); }
+
+        /* Admin Panel */
+        .admin-panel {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 24px;
         }
 
-        .admin-panel { max-width: 800px; margin: 0 auto; }
-        .admin-login { max-width: 400px; margin: 4rem auto; text-align: center; }
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .admin-header h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+        .logout-btn {
+            background: var(--danger) !important;
+            color: white !important;
+            border: none !important;
+        }
+
+        .admin-login {
+            max-width: 400px;
+            margin: 6rem auto;
+            text-align: center;
+            padding: 3rem;
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+        .admin-login h2 {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            font-weight: 600;
+        }
         .admin-login input {
-            width: 100%; padding: 0.75rem; margin-bottom: 1rem;
-            background: #2a2a2a; border: 1px solid #444; color: #fff;
-            border-radius: 4px;
+            width: 100%;
+            padding: 0.875rem 1rem;
+            margin-bottom: 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: var(--radius-sm);
+            font-size: 1rem;
+            transition: border-color 0.15s ease;
+        }
+        .admin-login input:focus {
+            outline: none;
+            border-color: var(--accent);
         }
         .admin-login button {
-            width: 100%; padding: 0.75rem;
-            background: #4a9; color: #fff;
-            border: none; cursor: pointer; border-radius: 4px;
+            width: 100%;
+            padding: 0.875rem;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            border-radius: var(--radius-sm);
+            font-size: 1rem;
+            font-weight: 500;
+            transition: background 0.15s ease;
         }
-        .image-list { display: flex; flex-direction: column; gap: 0.5rem; }
-        .image-item {
-            display: flex; align-items: center; gap: 1rem;
-            background: #2a2a2a; padding: 0.75rem; border-radius: 4px;
-        }
-        .image-item img { width: 60px; height: 60px; object-fit: cover; border-radius: 4px; }
-        .image-item .info { flex: 1; }
-        .image-item input[type="number"] {
-            width: 60px; padding: 0.25rem;
-            background: #3a3a3a; border: 1px solid #555; color: #fff;
-            border-radius: 4px; text-align: center;
-        }
-        .image-item button {
-            padding: 0.4rem 0.8rem;
-            border: none; border-radius: 4px; cursor: pointer;
-        }
-        .btn-edit { background: #4a9; color: #fff; }
-        .btn-delete { background: #a44; color: #fff; }
+        .admin-login button:hover { background: var(--accent-hover); }
+
+        /* Add Image Form */
         .add-image-form {
-            background: #2a2a2a; padding: 1rem; border-radius: 4px; margin-bottom: 1rem;
+            background: var(--bg-card);
+            padding: 24px;
+            border-radius: var(--radius);
+            margin-bottom: 24px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+        }
+        .add-image-form h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .add-image-form input[type="text"],
+        .add-image-form input[type="number"] {
+            padding: 0.75rem 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            width: 100%;
+        }
+        .add-image-form input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        .add-image-form input[type="file"] {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg-secondary);
+            border: 1px dashed var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            cursor: pointer;
+            margin-bottom: 12px;
+        }
+        .add-image-form button {
+            padding: 0.75rem 1.5rem;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: background 0.15s ease;
+        }
+        .add-image-form button:hover { background: var(--accent-hover); }
+
+        /* Admin Draggable Image Grid - CSS Grid with fixed row height */
+        .admin-grid-container {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 16px;
+            padding: 24px;
+            max-width: 1800px;
+            margin: 0 auto;
+            align-items: start;
+        }
+        @media (max-width: 1600px) {
+            .admin-grid-container { grid-template-columns: repeat(4, 1fr); }
+        }
+        @media (max-width: 1200px) {
+            .admin-grid-container { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (max-width: 900px) {
+            .admin-grid-container { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 600px) {
+            .admin-grid-container { grid-template-columns: 1fr; }
+        }
+
+        .image-card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.15s ease;
+            cursor: grab;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .image-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-hover);
+        }
+        .image-card:active { cursor: grabbing; }
+        .image-card.dragging {
+            opacity: 0.4;
+            transform: scale(0.95);
+        }
+        .image-card.drag-over {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent);
+        }
+        .image-card img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            display: block;
+            flex-shrink: 0;
+        }
+        .image-card .card-body {
+            padding: 8px 12px;
+            flex-shrink: 0;
+        }
+        .image-card .card-title {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 6px;
+        }
+        .image-card .card-actions {
+            display: flex;
+            gap: 4px;
+        }
+        .image-card button {
+            flex: 1;
+            padding: 4px 6px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            font-weight: 500;
+            transition: opacity 0.15s ease;
+        }
+        .image-card button:hover { opacity: 0.85; }
+        .btn-edit {
+            background: var(--accent);
+            color: white;
+        }
+        .btn-delete {
+            background: var(--danger);
+            color: white;
+        }
+        .drag-handle {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            cursor: grab;
+        }
+
+        .save-order-btn {
+            margin-top: 24px;
+            padding: 1rem 2rem;
+            background: var(--success);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: background 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .save-order-btn:hover { background: #15803d; }
+        .save-order-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .btn-edit { background: var(--accent); color: #fff; }
+        .btn-delete { background: var(--danger); color: #fff; }
+        .add-image-form {
+            background: var(--bg-tertiary);
+            padding: 1rem;
+            border-radius: var(--radius-sm);
+            margin-bottom: 1rem;
+            border: 1px solid var(--border-color);
         }
         .add-image-form input {
-            padding: 0.5rem; margin-right: 0.5rem;
-            background: #3a3a3a; border: 1px solid #555; color: #fff; border-radius: 4px;
+            padding: 0.5rem;
+            margin-right: 0.5rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: var(--radius-sm);
         }
         .add-image-form button {
             padding: 0.5rem 1rem;
-            background: #4a9; color: #fff; border: none; border-radius: 4px; cursor: pointer;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.15s ease;
         }
-        .logout-btn { background: #a44 !important; }
+        .add-image-form button:hover {
+            background: var(--accent-hover);
+        }
+        .logout-btn {
+            background: var(--danger) !important;
+            color: white !important;
+            border: none !important;
+        }
     </style>
 </head>
 <body>
     <nav>
-        <h1>📷 Gallery</h1>
-        <div>
-            <button onclick="showView('gallery')">Gallery</button>
-            <button onclick="showView('admin')">Admin</button>
+        <h1>Gallery</h1>
+        <div class="nav-right">
+            <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">🌙</button>
+            <button id="nav-gallery" onclick="showView('gallery')" class="active">Gallery</button>
+            <button id="nav-admin" onclick="showView('admin')">Admin</button>
         </div>
     </nav>
 
@@ -136,26 +487,33 @@
     <div id="admin-view" class="views">
         <div class="admin-panel">
             <div id="admin-login-form" class="admin-login">
-                <h2>Admin Login</h2>
+                <h2>Welcome back</h2>
                 <input type="email" id="login-email" placeholder="Email">
                 <input type="password" id="login-password" placeholder="Password">
-                <button onclick="adminLogin()">Login</button>
+                <button onclick="adminLogin()">Sign In</button>
             </div>
             <div id="admin-content" style="display:none;">
-                <h2>Image Management</h2>
-                <button class="logout-btn" onclick="adminLogout()" style="margin-bottom:1rem;">Logout</button>
+                <div class="admin-header">
+                    <h2>Image Management</h2>
+                    <button class="logout-btn" onclick="adminLogout()">Logout</button>
+                </div>
 
                 <div class="add-image-form">
                     <h3>Add New Image</h3>
-                    <input type="text" id="new-image-name" placeholder="Image Name">
-                    <input type="file" id="new-image-file" accept="image/*" style="margin-bottom:0.5rem;">
-                    <input type="text" id="new-image-desc" placeholder="Description (optional)">
-                    <input type="number" id="new-image-order" placeholder="Order" value="0">
-                    <button onclick="createImage()">Add Image</button>
+                    <div class="form-row">
+                        <input type="text" id="new-image-name" placeholder="Image name">
+                        <input type="file" id="new-image-file" accept="image/*">
+                    </div>
+                    <div class="form-row">
+                        <input type="text" id="new-image-desc" placeholder="Description (optional)">
+                    </div>
+                    <button onclick="createImage()">Upload Image</button>
                 </div>
 
-                <div class="image-list" id="image-list"></div>
-                <button onclick="saveOrder()" style="margin-top:1rem;padding:0.75rem 1.5rem;background:#4a9;color:#fff;border:none;border-radius:4px;cursor:pointer;">Save Order</button>
+                <div class="admin-grid-container" id="image-grid"></div>
+                <button class="save-order-btn" id="save-order-btn" onclick="saveOrder()" disabled>
+                    <span>💾</span> Save Order
+                </button>
             </div>
         </div>
     </div>
@@ -163,9 +521,35 @@
     <script>
         const API = '/api';
 
+        // Theme management
+        function initTheme() {
+            const saved = localStorage.getItem('gallery_theme');
+            if (saved) {
+                document.documentElement.setAttribute('data-theme', saved);
+                updateThemeIcon(saved);
+            } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                updateThemeIcon('dark');
+            }
+        }
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('gallery_theme', next);
+            updateThemeIcon(next);
+        }
+
+        function updateThemeIcon(theme) {
+            document.querySelector('.theme-toggle').textContent = theme === 'dark' ? '☀️' : '🌙';
+        }
+
         function showView(view) {
             document.querySelectorAll('.views').forEach(v => v.classList.remove('active'));
             document.getElementById(view + '-view').classList.add('active');
+            document.getElementById('nav-gallery').classList.toggle('active', view === 'gallery');
+            document.getElementById('nav-admin').classList.toggle('active', view === 'admin');
         }
 
         async function loadGallery() {
@@ -174,7 +558,7 @@
             const grid = document.getElementById('gallery-grid');
             grid.innerHTML = images.map(img => `
                 <div class="gallery-item" onclick="openLightbox('${img.image_url}', '${img.image_description || ''}')">
-                    <img src="${img.thumbnail_url}" alt="${img.image_name}">
+                    <img src="${img.thumbnail_url}" alt="${img.image_name}" loading="lazy">
                     <div class="name">${img.image_name}</div>
                 </div>
             `).join('');
@@ -184,11 +568,13 @@
             document.getElementById('lightbox-img').src = url;
             document.getElementById('lightbox-desc').textContent = desc;
             document.getElementById('lightbox').classList.add('active');
+            document.body.style.overflow = 'hidden';
         }
 
         function closeLightbox(e) {
             if (!e || e.target === document.getElementById('lightbox') || e.target.classList.contains('close')) {
                 document.getElementById('lightbox').classList.remove('active');
+                document.body.style.overflow = '';
             }
         }
 
@@ -229,31 +615,105 @@
             }
         }
 
+        // Drag and drop state
+        let draggedItem = null;
+        let hasOrderChanged = false;
+
+        function initDragAndDrop() {
+            const grid = document.getElementById('image-grid');
+            
+            grid.addEventListener('dragstart', (e) => {
+                const card = e.target.closest('.image-card');
+                if (!card) return;
+                draggedItem = card;
+                card.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', card.dataset.id);
+            });
+
+            grid.addEventListener('dragend', (e) => {
+                const card = e.target.closest('.image-card');
+                if (!card) return;
+                card.classList.remove('dragging');
+                document.querySelectorAll('.image-card.drag-over').forEach(c => c.classList.remove('drag-over'));
+                draggedItem = null;
+            });
+
+            grid.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                
+                const afterElement = getDragAfterElement(grid, e.clientY);
+                if (draggedItem) {
+                    document.querySelectorAll('.image-card.drag-over').forEach(c => c.classList.remove('drag-over'));
+                    
+                    if (afterElement === null) {
+                        grid.appendChild(draggedItem);
+                    } else {
+                        afterElement.classList.add('drag-over');
+                        grid.insertBefore(draggedItem, afterElement);
+                    }
+                    hasOrderChanged = true;
+                    document.getElementById('save-order-btn').disabled = false;
+                }
+            });
+
+            grid.addEventListener('dragleave', (e) => {
+                if (!grid.contains(e.relatedTarget)) {
+                    document.querySelectorAll('.image-card.drag-over').forEach(c => c.classList.remove('drag-over'));
+                }
+            });
+
+            grid.addEventListener('drop', (e) => {
+                e.preventDefault();
+                document.querySelectorAll('.image-card.drag-over').forEach(c => c.classList.remove('drag-over'));
+            });
+        }
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.image-card:not(.dragging)')];
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset, element: child };
+                }
+                return closest;
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
         async function loadAdminImages() {
             const res = await fetch(`${API}/admin/images`, {
                 headers: { 'Authorization': `Bearer ${adminToken}` }
             });
             const images = await res.json();
-            const list = document.getElementById('image-list');
-            list.innerHTML = images.map(img => `
-                <div class="image-item">
-                    <img src="${img.thumbnail_url}" alt="${img.image_name}">
-                    <div class="info">
-                        <strong>${img.image_name}</strong>
-                        <div style="font-size:0.8rem;color:#888;">${img.image_url}</div>
+            const grid = document.getElementById('image-grid');
+            
+            // Sort images by display_order
+            images.sort((a, b) => a.display_order - b.display_order);
+            
+            grid.innerHTML = images.map(img => `
+                <div class="image-card" draggable="true" data-id="${img.id}">
+                    <img src="${img.thumbnail_url}" alt="${img.image_name}" loading="lazy">
+                    <div class="card-body">
+                        <div class="card-title">${img.image_name}</div>
+                        <div class="card-actions">
+                            <button class="btn-edit" onclick="editImage('${img.id}')">Edit</button>
+                            <button class="btn-delete" onclick="deleteImage('${img.id}')">Delete</button>
+                        </div>
                     </div>
-                    <input type="number" value="${img.display_order}" data-id="${img.id}" class="order-input">
-                    <button class="btn-edit" onclick="editImage('${img.id}')">Edit</button>
-                    <button class="btn-delete" onclick="deleteImage('${img.id}')">Delete</button>
                 </div>
             `).join('');
+            
+            hasOrderChanged = false;
+            document.getElementById('save-order-btn').disabled = true;
+            initDragAndDrop();
         }
 
         async function createImage() {
             const name = document.getElementById('new-image-name').value;
             const fileInput = document.getElementById('new-image-file');
             const image_description = document.getElementById('new-image-desc').value || null;
-            const display_order = parseInt(document.getElementById('new-image-order').value) || 0;
             const user_id = localStorage.getItem('gallery_user_id');
 
             if (!fileInput.files[0]) {
@@ -265,7 +725,6 @@
             formData.append('image_name', name);
             formData.append('image', fileInput.files[0]);
             formData.append('image_description', image_description);
-            formData.append('display_order', display_order);
             formData.append('user_id', user_id);
 
             const res = await fetch(`${API}/admin/images`, {
@@ -276,27 +735,33 @@
                 body: formData
             });
             if (res.ok) {
-                ['new-image-name','new-image-file','new-image-desc','new-image-order'].forEach(id => {
+                ['new-image-name','new-image-file','new-image-desc'].forEach(id => {
                     const el = document.getElementById(id);
                     if (el) el.value = '';
                 });
                 loadAdminImages();
+                loadGallery();
             } else {
                 alert('Failed to create image');
             }
         }
 
         async function editImage(id) {
-            const order = document.querySelector(`input[data-id="${id}"]`).value;
+            const name = prompt('Enter new name:');
+            if (name === null) return;
             const res = await fetch(`${API}/admin/images`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${adminToken}`
                 },
-                body: JSON.stringify({ id, display_order: parseInt(order) })
+                body: JSON.stringify({ id, image_name: name })
             });
-            if (!res.ok) alert('Failed to update');
+            if (res.ok) {
+                loadAdminImages();
+            } else {
+                alert('Failed to update');
+            }
         }
 
         async function deleteImage(id) {
@@ -306,14 +771,17 @@
                 headers: { 'Authorization': `Bearer ${adminToken}` }
             });
             loadAdminImages();
+            loadGallery();
         }
 
         async function saveOrder() {
-            const orders = Array.from(document.querySelectorAll('.order-input')).map(input => ({
-                id: input.dataset.id,
-                display_order: parseInt(input.value)
+            const cards = document.querySelectorAll('.image-card');
+            const orders = Array.from(cards).map((card, index) => ({
+                id: card.dataset.id,
+                display_order: index
             }));
-            await fetch(`${API}/admin/images/reorder`, {
+            
+            const res = await fetch(`${API}/admin/images/reorder`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -321,9 +789,23 @@
                 },
                 body: JSON.stringify({ images: orders })
             });
-            alert('Order saved!');
+            
+            if (res.ok) {
+                hasOrderChanged = false;
+                document.getElementById('save-order-btn').disabled = true;
+                loadGallery();
+            } else {
+                alert('Failed to save order');
+            }
         }
 
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeLightbox();
+        });
+
+        // Init
+        initTheme();
         loadGallery();
         showAdminContent();
     </script>
